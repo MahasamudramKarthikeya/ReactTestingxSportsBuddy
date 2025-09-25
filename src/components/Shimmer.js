@@ -3,7 +3,7 @@ import "../styles/Shimmer.css";
 
 export default function Shimmer() {
   return (
-    <div className="shimmer-container">
+    <div className="shimmer-container" data-testid="shimmer-loader">
       {Array.from({ length: 12 }).map((_, index) => (
         <div key={index} className="shimmer-card">
           <div className="shimmer-image-wrapper">

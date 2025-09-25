@@ -27,7 +27,9 @@ export default function VenueCard({ resData1 }) {
     <div className="venue-card">
       {/* Image and rating */}
       <div className="venue-card-image-wrapper">
-        <img src={imageUrl} alt={name} className="venue-card-image" />
+        {imageUrl && (
+          <img src={imageUrl} alt={name} className="venue-card-image" />
+        )}
 
         <div className="venue-rating-wrapper">
           <div className="rating-score-box">
