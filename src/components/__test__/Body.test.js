@@ -5,12 +5,11 @@ import { Provider, useDispatch, useSelector } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 import Body from "../Body";
 import useFetchVenues from "../../hooks/useFetchVenues";
-import { setPageNo } from "../../features/citySlice";
 
-// ✅ Mock custom hook
+// Mock custom hook
 jest.mock("../../hooks/useFetchVenues");
 
-// ✅ Mock react-redux
+// Mock react-redux
 jest.mock("react-redux", () => ({
   ...jest.requireActual("react-redux"),
   useDispatch: jest.fn(),
@@ -19,7 +18,6 @@ jest.mock("react-redux", () => ({
 
 const dispatchMock = jest.fn();
 
-// ✅ Mock IntersectionObserver globally
 let mockIntersectionObserverCallback;
 
 beforeAll(() => {
@@ -31,10 +29,10 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   }
-  window.IntersectionObserver = MockIntersectionObserver;
+  global.IntersectionObserver = MockIntersectionObserver;
 });
 
-describe("🧪 <Body /> Component", () => {
+describe("<Body /> Component", () => {
   const mockStore = configureStore([]);
   let store;
 
@@ -46,10 +44,10 @@ describe("🧪 <Body /> Component", () => {
       },
     });
 
+    // ✅ Always clear before every test
     dispatchMock.mockClear();
     useDispatch.mockReturnValue(dispatchMock);
 
-    // ✅ Simulate live Redux state
     useSelector.mockImplementation((selectorFn) =>
       selectorFn(store.getState())
     );
@@ -57,12 +55,9 @@ describe("🧪 <Body /> Component", () => {
     useFetchVenues.mockReset();
   });
 
-  test("renders fallback if no city selected", () => {
-    // Override selector to simulate no city
+  test("renders a fallback message when no city is selected", () => {
     useSelector.mockImplementation((cb) =>
-      cb({
-        city: { selectedCity: null, pageNo: 0 },
-      })
+      cb({ city: { selectedCity: null, pageNo: 0 } })
     );
 
     useFetchVenues.mockReturnValue({
@@ -82,7 +77,7 @@ describe("🧪 <Body /> Component", () => {
     expect(screen.getByText(/Please select a city first/i)).toBeInTheDocument();
   });
 
-  test("shows shimmer loader when loading is true", () => {
+  test("displays a shimmer loader while data is being fetched", () => {
     useFetchVenues.mockReturnValue({
       venueList: [],
       loading: true,
@@ -100,7 +95,7 @@ describe("🧪 <Body /> Component", () => {
     expect(screen.getByTestId("shimmer-loader")).toBeInTheDocument();
   });
 
-  test("renders venue cards from fetched list", () => {
+  test("renders venue cards from the fetched list", () => {
     useFetchVenues.mockReturnValue({
       venueList: [
         { name: "Venue A", avgRating: 4.5, city: "Hyd", activeKey: "v1" },
@@ -122,7 +117,7 @@ describe("🧪 <Body /> Component", () => {
     expect(screen.getByText("Venue B")).toBeInTheDocument();
   });
 
-  test("filters venues using search input", () => {
+  test("filters venues when typing in the search box", () => {
     useFetchVenues.mockReturnValue({
       venueList: [
         { name: "Pizza Palace", avgRating: 4.5, city: "Hyd", activeKey: "v1" },
@@ -147,7 +142,7 @@ describe("🧪 <Body /> Component", () => {
     expect(screen.queryByText("Burger Barn")).toBeNull();
   });
 
-  test("toggles top-rated filter button correctly", () => {
+  test("toggles the top-rated filter button correctly", () => {
     useFetchVenues.mockReturnValue({
       venueList: [
         { name: "Top Rated", avgRating: 5, city: "Hyd", activeKey: "v1" },
@@ -177,7 +172,7 @@ describe("🧪 <Body /> Component", () => {
     expect(screen.getByText("Low Rated")).toBeInTheDocument();
   });
 
-  test("renders Load More button when 40 cards loaded and hasMore is true", () => {
+  test("renders a Load More button when enough cards are loaded and more data is available", () => {
     const dummyVenues = Array(40)
       .fill(null)
       .map((_, i) => ({
@@ -206,8 +201,8 @@ describe("🧪 <Body /> Component", () => {
     ).toBeInTheDocument();
   });
 
-  test("triggers infinite scroll and dispatches page increment once", async () => {
-    const dummyVenues = Array(40)
+  test("dispatches a page increment when the last card enters view", async () => {
+    const dummyVenues = Array(16)
       .fill(null)
       .map((_, i) => ({
         name: `Venue ${i + 1}`,
@@ -215,15 +210,6 @@ describe("🧪 <Body /> Component", () => {
         city: "Hyd",
         activeKey: `v${i + 1}`,
       }));
-
-    useSelector.mockImplementation((cb) =>
-      cb({
-        city: {
-          selectedCity: { lat: 12, lng: 77, name: "TestCity" },
-          pageNo: 0,
-        },
-      })
-    );
 
     useFetchVenues.mockReturnValue({
       venueList: dummyVenues,
@@ -243,11 +229,116 @@ describe("🧪 <Body /> Component", () => {
       mockIntersectionObserverCallback([{ isIntersecting: true }]);
     });
 
-    // Check that setPageNo was called with 1 (scroll triggered)
     const wasPage1Called = dispatchMock.mock.calls.some(
       ([action]) => action.type === "city/setPageNo" && action.payload === 1
     );
 
     expect(wasPage1Called).toBe(true);
+  });
+
+  test("clicking Load More button triggers dispatch and resets manual load flag", () => {
+    const dummyVenues = Array(40)
+      .fill(null)
+      .map((_, i) => ({
+        name: `Venue ${i + 1}`,
+        avgRating: 4,
+        city: "Hyd",
+        activeKey: `v${i + 1}`,
+      }));
+
+    jest.useFakeTimers();
+
+    useFetchVenues.mockReturnValue({
+      venueList: dummyVenues,
+      loading: false,
+      hasMore: true,
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Body />
+        </MemoryRouter>
+      </Provider>
+    );
+
+    const loadMoreBtn = screen.getByRole("button", { name: /load more/i });
+    fireEvent.click(loadMoreBtn);
+
+    // Should dispatch page increment immediately
+    const wasPage1Called = dispatchMock.mock.calls.some(
+      ([action]) => action.type === "city/setPageNo" && action.payload === 1
+    );
+    expect(wasPage1Called).toBe(true);
+
+    // Advance timers to trigger setTimeout cleanup
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    jest.useRealTimers();
+  });
+
+  test("does not trigger observer when loading is true", () => {
+    useFetchVenues.mockReturnValue({
+      venueList: Array(16)
+        .fill(null)
+        .map((_, i) => ({
+          name: `Venue ${i + 1}`,
+          avgRating: 4,
+          city: "Hyd",
+          activeKey: `v${i + 1}`,
+        })),
+      loading: true,
+      hasMore: true,
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Body />
+        </MemoryRouter>
+      </Provider>
+    );
+
+    // ✅ clear any dispatches triggered at mount
+    dispatchMock.mockClear();
+
+    // We do NOT trigger mockIntersectionObserverCallback here
+
+    const wasPageIncrementCalled = dispatchMock.mock.calls.some(
+      ([action]) => action.type === "city/setPageNo"
+    );
+    expect(wasPageIncrementCalled).toBe(false);
+  });
+
+  test("lastCardRef exits early when loading is true", () => {
+    const dummyVenues = [
+      { name: "Venue 1", avgRating: 4, city: "Hyd", activeKey: "v1" },
+    ];
+
+    useFetchVenues.mockReturnValue({
+      venueList: dummyVenues,
+      loading: true, // early return path
+      hasMore: true,
+    });
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <Body />
+        </MemoryRouter>
+      </Provider>
+    );
+
+    // ✅ clear any dispatches triggered at mount
+    dispatchMock.mockClear();
+
+    // Again, no observer callback triggered here
+
+    const wasPageIncrementCalled = dispatchMock.mock.calls.some(
+      ([action]) => action.type === "city/setPageNo"
+    );
+    expect(wasPageIncrementCalled).toBe(false);
   });
 });

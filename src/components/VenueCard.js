@@ -1,6 +1,7 @@
 import React from "react";
 import "../styles/VenueCard.css";
 import { FaStar } from "react-icons/fa";
+import { BiSolidShieldPlus } from "react-icons/bi";
 
 export default function VenueCard({ resData1 }) {
   const {
@@ -10,22 +11,19 @@ export default function VenueCard({ resData1 }) {
     address,
     avgRating,
     ratingCount,
-    coverImage,
     images,
     distance,
     isBookable,
-    isSafeHygiene,
     sports,
   } = resData1;
 
-  const imageUrl = coverImage || images?.[0]?.url;
+  const imageUrl = images?.[0]?.url;
   const locationText = `${area || city || "Unknown"} (${
     distance?.toFixed(2) || "0"
   } Km)`;
 
   return (
     <div className="venue-card">
-      {/* Image and rating */}
       <div className="venue-card-image-wrapper">
         {imageUrl && (
           <img src={imageUrl} alt={name} className="venue-card-image" />
@@ -40,7 +38,6 @@ export default function VenueCard({ resData1 }) {
         </div>
       </div>
 
-      {/* Venue content */}
       <div className="venue-card-content">
         <h3 className="venue-card-title">{name}</h3>
 
@@ -48,7 +45,6 @@ export default function VenueCard({ resData1 }) {
           <span className="location-text">{locationText}</span>
         </div>
 
-        {/* Sports Icons */}
         <div className="venue-sports-icons">
           {sports?.slice(0, 3).map((sportCode, index) => (
             <div key={index} className="sport-icon-wrapper">
@@ -66,16 +62,14 @@ export default function VenueCard({ resData1 }) {
           ))}
         </div>
 
-        {/* Tags */}
         <div className="venue-card-tags">
           {isBookable && <span className="venue-tag bookable">BOOKABLE</span>}
 
           {avgRating > 4.5 && (
             <span className="venue-tag hygiene">
-              <img
-                src="https://png.pngtree.com/png-clipart/20240127/original/pngtree-checkmark-with-green-shield-vector-png-image_14160715.png"
-                alt="shield-icon"
-                className="tag-icon"
+              <BiSolidShieldPlus
+                data-testid="shield-icon"
+                className="tag-icon shield-icon"
               />
               Safe & Hygiene
             </span>

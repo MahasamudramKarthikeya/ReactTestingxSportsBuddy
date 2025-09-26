@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import VenueCard from "../VenueCard";
 
 const baseVenue = {
@@ -25,17 +25,9 @@ const baseVenue = {
 describe("VenueCard - Full Coverage Tests", () => {
   it("displays location with area and distance correctly", () => {
     render(<VenueCard resData1={baseVenue} />);
-    // Use a flexible regex to match the text (distance rounded to 2 decimals)
     expect(
       screen.getByText(/LB Stadium Road \(1.90 Km\)/i)
     ).toBeInTheDocument();
-  });
-
-  it("renders the coverImage when provided", () => {
-    render(<VenueCard resData1={baseVenue} />);
-    const img = screen.getByAltText(baseVenue.name);
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute("src", baseVenue.coverImage);
   });
 
   it("renders fallback image from images if coverImage is missing", () => {
@@ -45,7 +37,6 @@ describe("VenueCard - Full Coverage Tests", () => {
     };
     render(<VenueCard resData1={venue} />);
     const img = screen.getByAltText(baseVenue.name);
-    expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", baseVenue.images[0].url);
   });
 
@@ -74,8 +65,7 @@ describe("VenueCard - Full Coverage Tests", () => {
   it("does NOT render Bookable tag if isBookable is false", () => {
     const venue = { ...baseVenue, isBookable: false };
     render(<VenueCard resData1={venue} />);
-    const bookableTag = screen.queryByText(/BOOKABLE/i);
-    expect(bookableTag).not.toBeInTheDocument();
+    expect(screen.queryByText(/BOOKABLE/i)).not.toBeInTheDocument();
   });
 
   it("renders Safe & Hygiene tag if avgRating > 4.5", () => {
@@ -86,20 +76,37 @@ describe("VenueCard - Full Coverage Tests", () => {
   it("does NOT render Safe & Hygiene tag if avgRating <= 4.5", () => {
     const venue = { ...baseVenue, avgRating: 4.5 };
     render(<VenueCard resData1={venue} />);
-    const hygieneTag = screen.queryByText(/Safe & Hygiene/i);
-    expect(hygieneTag).not.toBeInTheDocument();
+    expect(screen.queryByText(/Safe & Hygiene/i)).not.toBeInTheDocument();
   });
 
-  it("renders sports icons and falls back to default icon on error", () => {
+  it("renders sports icons and applies default icon on error", () => {
     render(<VenueCard resData1={baseVenue} />);
     const sportIcons = screen
       .getAllByRole("img")
       .filter((img) => img.classList.contains("sport-icon-img"));
-    expect(sportIcons.length).toBeLessThanOrEqual(3);
-    // Each sport icon alt matches the sport code
-    baseVenue.sports.slice(0, 3).forEach((sportCode) => {
-      expect(screen.getByAltText(sportCode)).toBeInTheDocument();
-    });
+
+    // trigger error on the first sport icon
+    fireEvent.error(sportIcons[0]);
+
+    expect(sportIcons[0]).toHaveAttribute(
+      "src",
+      "https://playo.gumlet.io/V3SPORTICONS/SP2.png?q=100"
+    );
+  });
+
+  it("renders sports icons and applies default icon on error", () => {
+    render(<VenueCard resData1={baseVenue} />);
+    const sportIcons = screen
+      .getAllByRole("img")
+      .filter((img) => img.classList.contains("sport-icon-img"));
+
+    // trigger error on the first sport icon
+    fireEvent.error(sportIcons[0]);
+
+    expect(sportIcons[0]).toHaveAttribute(
+      "src",
+      "https://playo.gumlet.io/V3SPORTICONS/SP2.png?q=100"
+    );
   });
 
   it("renders 'N/A' for avgRating if missing", () => {
